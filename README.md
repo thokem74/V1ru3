@@ -81,3 +81,7 @@ godot --path . --script res://tests/performance_test.gd
 The logic runner verifies wrapping, deterministic terrain, seam continuity, water exclusion, infection clamping, score thresholds, and progression. Integration tests exercise actual flight, combat, landings, enemies, coverage loss, defeat, victory, and restart. Graphical runs additionally check pointer capture and rendered tree colors. The endurance test simulates 3,600 frames of late-wave combat and seam crossings with bounded entity counts. The visual harness saves screenshots under `/tmp/vector-plague-*.png`. Tests do not write high scores.
 
 Behavioral references: [Zarch overview](https://en.wikipedia.org/wiki/Zarch), [Virus manual](https://www.lemonamiga.com/doc/virus/1794), and [Godot ArrayMesh documentation](https://docs.godotengine.org/en/stable/classes/class_arraymesh.html). Implementation and assets are original.
+
+## Reading the code
+
+See [the code guide](docs/CODE_GUIDE.md) for the execution order, coordinate conventions, flight and landing equations, terrain/wrapping design, combat, effects, and test structure. Every GDScript function has a documentation comment, and flight tuning fields explain their units directly in `lander_controller.gd`.
