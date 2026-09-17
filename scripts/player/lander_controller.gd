@@ -1,0 +1,104 @@
+class_name LanderController
+extends Node3D
+signal player_died
+@export_group("Classic flight")
+@export var mouse_sensitivity := 0.38
+@export var virtual_mouse_radius := 240.0
+@export var max_declination := 172.0
+@export var orientation_response := 18.0
+@export var orientation_damping := 7.0
+@export var gravity := 10.0
+@export var thrust_acceleration := 24.0
+@export var linear_drag := 0.12
+@export var max_practical_speed := 95.0
+@export var flight_ceiling := 180.0
+var virtual_mouse_offset := Vector2.ZERO
+var velocity := Vector3.ZERO
+var yaw := 0.0
+var tilt := 0.0
+var yaw_velocity := 0.0
+var tilt_velocity := 0.0
+var fuel := 100.0
+var alive := true
+var landed := true
+var grace := 1.5
+var thrusting := false
+var model: Node3D
+var shadow: MeshInstance3D
+var game: Node3D
+var exhaust_timer := 0.0
+func setup(controller: Node3D) -> void:
+ game=controller
+ model=Models.craft(-1); add_child(model)
+ shadow=Models.shadow(game)
+ respawn()
+func respawn() -> void:
+ position=game.terrain.home+Vector3.UP*1.35
+ velocity=Vector3.ZERO; virtual_mouse_offset=Vector2.ZERO
+ yaw=0; tilt=0; yaw_velocity=0; tilt_velocity=0
+ basis=Basis.IDENTITY
+ fuel=100; alive=true; landed=true; grace=1.5
+ show(); shadow.show()
+func mouse_motion(relative: Vector2) -> void:
+ virtual_mouse_offset=(virtual_mouse_offset+relative*mouse_sensitivity).limit_length(virtual_mouse_radius)
+func step(dt: float) -> void:
+ if not alive: return
+ grace=maxf(0,grace-dt)
+ if Input.is_action_just_pressed("center"): virtual_mouse_offset=Vector2.ZERO
+ var turn := Input.get_axis("left","right")
+ var pitch := Input.get_axis("raise","dip")
+ if turn!=0 or pitch!=0:
+  var direction := atan2(-virtual_mouse_offset.x,-virtual_mouse_offset.y)
+  if virtual_mouse_offset.length()<0.1: direction=yaw
+  direction-=turn*dt*1.6
+  var radius := clampf(virtual_mouse_offset.length()+pitch*dt*65,0,virtual_mouse_radius)
+  virtual_mouse_offset=Vector2(-sin(direction),-cos(direction))*radius
+  if radius<0.1: yaw-=turn*dt*1.6
+ var target_yaw := yaw
+ if virtual_mouse_offset.length()>0.5: target_yaw=atan2(-virtual_mouse_offset.x,-virtual_mouse_offset.y)
+ var target_tilt := virtual_mouse_offset.length()/virtual_mouse_radius*deg_to_rad(max_declination)
+ yaw_velocity+=(angle_difference(yaw,target_yaw)*orientation_response-yaw_velocity*orientation_damping)*dt
+ tilt_velocity+=((target_tilt-tilt)*orientation_response-tilt_velocity*orientation_damping)*dt
+ yaw+=yaw_velocity*dt; tilt+=tilt_velocity*dt
+ basis=Basis(Vector3.UP,yaw)*Basis(Vector3.RIGHT,-tilt)
+ thrusting=Input.is_action_pressed("thrust") and fuel>0
+ var powered := thrusting and position.y<flight_ceiling
+ if thrusting: fuel=maxf(0,fuel-4*dt)
+ if landed and powered and basis.y.y>0.4: landed=false
+ if landed:
+  fuel=minf(100,fuel+20*dt)
+  velocity=Vector3.ZERO
+ else:
+  velocity.y-=gravity*dt
+  if powered: velocity+=basis.y*thrust_acceleration*dt
+  velocity*=exp(-linear_drag*dt)
+  velocity=velocity.limit_length(max_practical_speed)
+  position+=velocity*dt
+  var ground: float=game.terrain.ground(position)
+  if position.y<=ground+1.15:
+   var home_delta := WrapMath.delta(game.terrain.home,position)
+   var safe := absf(home_delta.x)<9 and absf(home_delta.z)<9 and absf(velocity.y)<4 and Vector2(velocity.x,velocity.z).length()<3.5 and absf(tilt)<deg_to_rad(8) and basis.y.y>0
+   if safe:
+    landed=true; position.y=game.terrain.home.y+1.35; velocity=Vector3.ZERO
+    virtual_mouse_offset=Vector2.ZERO
+   else: die(true)
+ exhaust_timer-=dt
+ if powered and exhaust_timer<=0:
+  exhaust_timer=0.035
+  game.effects.burst(position-basis.y,Color("ffd98d"),2,2,0.35,-basis.y*13+velocity*0.3)
+ if position.y>90 and exhaust_timer<=0:
+  exhaust_timer=0.08
+  game.effects.burst(position+Vector3(randf_range(-12,12),randf_range(-5,5),-15),Color("d3e4df"),1,0,0.8,-velocity*0.6)
+ shadow.position=Vector3(position.x,game.terrain.ground(position)+0.14,position.z)
+ shadow.scale=Vector3.ONE*(1.5+minf(altitude(),100)*0.018)
+ model.visible=grace<=0 or fmod(grace,0.2)<0.13
+func altitude() -> float: return maxf(0,position.y-game.terrain.ground(position)-1.15)
+func die(terrain_collision: bool = false) -> void:
+ if not alive or (grace>0 and not terrain_collision): return
+ alive=false; thrusting=false
+ hide(); shadow.hide()
+ game.effects.burst(position,Color("ffb16d"),60,18,1.5)
+ game.effects.sound("explosion")
+ player_died.emit()
+func dispose() -> void:
+ shadow.queue_free(); queue_free()
