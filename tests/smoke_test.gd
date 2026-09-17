@@ -28,12 +28,23 @@ func run() -> void:
  var p: LanderController=game.player
  p.mouse_motion(Vector2(12,0))
  for i in range(30): p.step(1.0/60)
- check(absf(p.yaw)<0.001 and absf(p.tilt)<0.001,"Mouse jitter cannot spin or tilt the craft near neutral")
- p.virtual_mouse_offset=Vector2(240,0)
+ check(absf(p.yaw)<deg_to_rad(1.3) and absf(p.tilt)<0.001,"Small horizontal input produces only a small turn and no tilt")
+ p.mouse_motion(Vector2(1800,-1000))
  for i in range(60):
   p.step(1.0/60)
   check(absf(p.yaw_velocity)<=deg_to_rad(p.max_heading_rate)+0.001,"Heading speed remains bounded on abrupt mouse input")
  check(absf(p.tilt)<p.requested_tilt(),"Damped orientation approaches its target without overshoot")
+ p.respawn()
+ p.mouse_motion(Vector2(100,0))
+ for i in range(180): p.step(1.0/60)
+ check(absf(rad_to_deg(p.yaw)+10)<0.1,"100 horizontal pixels settle at a predictable 10-degree turn")
+ var held_heading := p.yaw
+ for i in range(120): p.step(1.0/60)
+ check(absf(rad_to_deg(p.yaw-held_heading))<0.1,"Stopping the mouse holds heading without ongoing turning")
+ p.mouse_motion(Vector2(-100,0))
+ for i in range(180): p.step(1.0/60)
+ check(absf(rad_to_deg(p.yaw))<0.1,"Equal opposite input reliably returns heading")
+ check(p.tilt==0,"Horizontal steering does not introduce tilt")
  p.respawn()
  p.fuel=50
  for i in range(60): p.step(1.0/60)

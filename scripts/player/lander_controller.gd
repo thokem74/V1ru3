@@ -3,13 +3,16 @@ extends Node3D
 signal player_died
 @export_group("Classic flight")
 @export var mouse_sensitivity := 0.28
+@export var mouse_heading_sensitivity := 0.10
+@export var heading_response := 24.0
+@export var heading_damping := 12.0
 @export var virtual_mouse_radius := 240.0
 @export var max_declination := 172.0
 @export_range(0.0, 0.2) var mouse_deadzone := 0.04
 @export_range(1.0, 3.0) var tilt_curve := 1.5
 @export var orientation_response := 22.0
 @export var orientation_damping := 10.0
-@export var max_heading_rate := 85.0
+@export var max_heading_rate := 45.0
 @export var max_tilt_rate := 100.0
 @export var gravity := 10.0
 @export var thrust_acceleration := 24.0
@@ -19,6 +22,7 @@ signal player_died
 var virtual_mouse_offset := Vector2.ZERO
 var velocity := Vector3.ZERO
 var yaw := 0.0
+var requested_heading := 0.0
 var tilt := 0.0
 var yaw_velocity := 0.0
 var tilt_velocity := 0.0
@@ -39,12 +43,18 @@ func setup(controller: Node3D) -> void:
 func respawn() -> void:
  position=game.terrain.home+Vector3.UP*1.35
  velocity=Vector3.ZERO; virtual_mouse_offset=Vector2.ZERO
- yaw=0; tilt=0; yaw_velocity=0; tilt_velocity=0
+ yaw=0; requested_heading=0; tilt=0; yaw_velocity=0; tilt_velocity=0
  basis=Basis.IDENTITY
  fuel=100; alive=true; landed=true; grace=1.5
  show(); shadow.show()
 func mouse_motion(relative: Vector2) -> void:
- virtual_mouse_offset=(virtual_mouse_offset+relative*mouse_sensitivity).limit_length(virtual_mouse_radius)
+ # Relative steering avoids the polar singularity: a tiny sideways movement
+ # near upright must not ask for a 90-degree compass turn.
+ requested_heading=wrapf(requested_heading-deg_to_rad(relative.x*mouse_heading_sensitivity),-PI,PI)
+ var radius := clampf(virtual_mouse_offset.length()-relative.y*mouse_sensitivity,0,virtual_mouse_radius)
+ set_attitude_input(radius)
+func set_attitude_input(radius: float) -> void:
+ virtual_mouse_offset=Vector2(-sin(requested_heading),-cos(requested_heading))*radius
 func requested_tilt() -> float:
  # A soft center gives precision for hovering/landing without losing full inversion.
  var radius := virtual_mouse_offset.length()/virtual_mouse_radius
@@ -53,20 +63,17 @@ func requested_tilt() -> float:
 func step(dt: float) -> void:
  if not alive: return
  grace=maxf(0,grace-dt)
- if Input.is_action_just_pressed("center"): virtual_mouse_offset=Vector2.ZERO
+ if Input.is_action_just_pressed("center"):
+  virtual_mouse_offset=Vector2.ZERO
+  requested_heading=yaw
  var turn := Input.get_axis("left","right")
  var pitch := Input.get_axis("raise","dip")
  if turn!=0 or pitch!=0:
-  var direction := atan2(-virtual_mouse_offset.x,-virtual_mouse_offset.y)
-  if virtual_mouse_offset.length()<0.1: direction=yaw
-  direction-=turn*dt*1.6
+  requested_heading=wrapf(requested_heading-turn*dt*1.6,-PI,PI)
   var radius := clampf(virtual_mouse_offset.length()+pitch*dt*65,0,virtual_mouse_radius)
-  virtual_mouse_offset=Vector2(-sin(direction),-cos(direction))*radius
-  if radius<0.1: yaw-=turn*dt*1.6
- var target_yaw := yaw
- if virtual_mouse_offset.length()>virtual_mouse_radius*mouse_deadzone: target_yaw=atan2(-virtual_mouse_offset.x,-virtual_mouse_offset.y)
+  set_attitude_input(radius)
  var target_tilt := requested_tilt()
- yaw_velocity+=(angle_difference(yaw,target_yaw)*orientation_response-yaw_velocity*orientation_damping)*dt
+ yaw_velocity+=(angle_difference(yaw,requested_heading)*heading_response-yaw_velocity*heading_damping)*dt
  tilt_velocity+=((target_tilt-tilt)*orientation_response-tilt_velocity*orientation_damping)*dt
  yaw_velocity=clampf(yaw_velocity,-deg_to_rad(max_heading_rate),deg_to_rad(max_heading_rate))
  tilt_velocity=clampf(tilt_velocity,-deg_to_rad(max_tilt_rate),deg_to_rad(max_tilt_rate))

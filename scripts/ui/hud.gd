@@ -96,7 +96,7 @@ func draw_flight_hud() -> void:
   var width := font.get_string_size(status,HORIZONTAL_ALIGNMENT_LEFT,-1,20).x
   panel(Rect2(640-width/2-20,560,width+40,38))
   text(Vector2(640-width/2,586),status,20,GOLD)
- # Virtual mouse instrument: center dot marks the neutral input zone.
+ # Attitude instrument: center dot marks the neutral tilt zone.
  var center := Vector2(1176,502)
  draw_circle(center,52,Color(0.02,0.05,0.07,0.75))
  draw_arc(center,51,0,TAU,48,MUTED,1)
@@ -129,7 +129,7 @@ func title_screen() -> void:
  text(Vector2(98,296),"ONE CRAFT.  THREE LANDSCAPES.  NO SECOND EARTH.",16,AQUA)
  text(Vector2(98,346),"Destroy every invader. Keep the living terrain green.",19)
  text(Vector2(98,376),"Four waves per landscape. Survive all twelve to win.",19)
- text(Vector2(98,421),"MOVE MOUSE  lean toward the pointer; momentum stays",17,MUTED)
+ text(Vector2(98,421),"MOVE MOUSE  left/right steer; up/down adjusts tilt",17,MUTED)
  text(Vector2(98,451),"LEFT BUTTON  thrust        RIGHT BUTTON  cannon",17,MUTED)
  text(Vector2(98,481),"R  return upright             M  missile     B  smart bomb",17,MUTED)
  text(Vector2(98,511),"Land gently on the marked home pad to refuel.",17,MUTED)

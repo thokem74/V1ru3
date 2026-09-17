@@ -18,7 +18,7 @@ Default window: 1280×720. Simulation: 60 Hz. The native-resolution HUD and flat
 
 | Input | Action |
 |---|---|
-| Mouse movement | Accumulate a virtual flight-stick offset: direction selects heading, radius selects tilt |
+| Mouse movement | Left/right: relative heading adjustment; up/down: increase/reduce tilt |
 | Left mouse / Space | Main thruster; consumes fuel |
 | Right mouse / F / Ctrl | Forward cannon, 10 rounds/sec; **−1 point per round**, even on a miss |
 | W / Up, S / Down | Increase / reduce declination |
@@ -30,7 +30,7 @@ Default window: 1280×720. Simulation: 60 Hz. The native-resolution HUD and flat
 | Esc | Pause / resume and release / capture mouse |
 | Enter / left click | Start, resume, continue results, or restart |
 
-Lift straight up first. Mouse control has a small neutral zone, a gentle progressive tilt curve, and damped, rate-limited turning to make hovering and landing easier. Larger movements progressively increase tilt and can still invert the craft. Tilt to accelerate, counter-tilt to brake, then return upright. The nose reticle shows the actual cannon direction. The circular instrument at lower right shows your virtual mouse offset and tilt.
+Lift straight up first. Horizontal mouse movement adjusts the requested heading by 0.10° per pixel; stopping the mouse holds that heading. Turns are damped and limited to 45°/sec. Up/down independently increases/reduces tilt, with a small neutral zone and a gentle progressive curve for hovering and landing. Larger movements progressively increase tilt and can still invert the craft. Tilt to accelerate, counter-tilt to brake, then return upright. The nose reticle shows the actual cannon direction. The circular instrument at lower right shows your requested lean direction and tilt.
 
 The engine stops accelerating above 180 m world altitude. Fuel burns at 4 units/sec. Land on the gold **H** pad to refill at 20 units/sec: under 4 m/s vertical speed, under 3.5 m/s horizontal speed, and under 8° tilt. Ground away from the pad, water, fast/bad landings, ramming, and a single enemy round are lethal. Spawn protection lasts 1.5 seconds against enemies, not crashes.
 

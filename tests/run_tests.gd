@@ -46,6 +46,15 @@ func _initialize() -> void:
   check(flight.requested_tilt()>=previous_tilt,"Tilt curve is monotonic")
   previous_tilt=flight.requested_tilt()
  check(is_equal_approx(rad_to_deg(previous_tilt),flight.max_declination),"Gentler control preserves full inversion range")
+ flight.requested_heading=0
+ flight.virtual_mouse_offset=Vector2.ZERO
+ flight.mouse_motion(Vector2(100,-100))
+ check(is_equal_approx(rad_to_deg(flight.requested_heading),-10),"Horizontal motion is proportional rather than an absolute compass jump")
+ var lean := flight.requested_tilt()
+ flight.mouse_motion(Vector2(-200,0))
+ check(is_equal_approx(lean,flight.requested_tilt()),"Horizontal steering preserves tilt")
+ flight.mouse_motion(Vector2(100,0))
+ check(absf(flight.requested_heading)<0.00001,"Opposite mouse motions cancel exactly")
  flight.free()
  var score := ScoreManager.new()
  score.cannon(); check(score.score==-1,"Cannon costs a point even at zero score")
