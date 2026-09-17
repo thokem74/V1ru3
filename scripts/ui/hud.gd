@@ -96,11 +96,11 @@ func draw_flight_hud() -> void:
   var width := font.get_string_size(status,HORIZONTAL_ALIGNMENT_LEFT,-1,20).x
   panel(Rect2(640-width/2-20,560,width+40,38))
   text(Vector2(640-width/2,586),status,20,GOLD)
- # Virtual mouse instrument: the small inner ring is the safe landing attitude.
+ # Virtual mouse instrument: center dot marks the neutral input zone.
  var center := Vector2(1176,502)
  draw_circle(center,52,Color(0.02,0.05,0.07,0.75))
  draw_arc(center,51,0,TAU,48,MUTED,1)
- draw_arc(center,24,0,TAU,32,Color("416e76"),1)
+ draw_arc(center,50*p.mouse_deadzone,0,TAU,16,AQUA,1)
  draw_line(center-Vector2(56,0),center+Vector2(56,0),MUTED)
  draw_line(center-Vector2(0,56),center+Vector2(0,56),MUTED)
  draw_circle(center+p.virtual_mouse_offset/p.virtual_mouse_radius*50,4,GOLD)

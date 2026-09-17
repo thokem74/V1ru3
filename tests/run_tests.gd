@@ -34,6 +34,19 @@ func _initialize() -> void:
  check(absf(a.healthy()-(1.0-1.0/a.land_count))<0.000001,"Infection denominator is land only")
  a.infect(land_index,-100)
  check(a.infection[land_index]==0 and is_equal_approx(a.healthy(),1),"Infection clamps at zero")
+ var flight := LanderController.new()
+ flight.mouse_motion(Vector2(12,0))
+ check(flight.requested_tilt()==0,"Small mouse jitter stays upright inside the neutral zone")
+ flight.virtual_mouse_offset=Vector2.ZERO
+ flight.mouse_motion(Vector2(0,-100))
+ check(rad_to_deg(flight.requested_tilt())<6,"Ordinary mouse corrections produce gentle tilt")
+ var previous_tilt := 0.0
+ for radius in range(0,241,12):
+  flight.virtual_mouse_offset=Vector2(radius,0)
+  check(flight.requested_tilt()>=previous_tilt,"Tilt curve is monotonic")
+  previous_tilt=flight.requested_tilt()
+ check(is_equal_approx(rad_to_deg(previous_tilt),flight.max_declination),"Gentler control preserves full inversion range")
+ flight.free()
  var score := ScoreManager.new()
  score.cannon(); check(score.score==-1,"Cannon costs a point even at zero score")
  score.add(10001)

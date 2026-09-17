@@ -2,11 +2,15 @@ class_name LanderController
 extends Node3D
 signal player_died
 @export_group("Classic flight")
-@export var mouse_sensitivity := 0.38
+@export var mouse_sensitivity := 0.28
 @export var virtual_mouse_radius := 240.0
 @export var max_declination := 172.0
-@export var orientation_response := 18.0
-@export var orientation_damping := 7.0
+@export_range(0.0, 0.2) var mouse_deadzone := 0.04
+@export_range(1.0, 3.0) var tilt_curve := 1.5
+@export var orientation_response := 22.0
+@export var orientation_damping := 10.0
+@export var max_heading_rate := 85.0
+@export var max_tilt_rate := 100.0
 @export var gravity := 10.0
 @export var thrust_acceleration := 24.0
 @export var linear_drag := 0.12
@@ -41,6 +45,11 @@ func respawn() -> void:
  show(); shadow.show()
 func mouse_motion(relative: Vector2) -> void:
  virtual_mouse_offset=(virtual_mouse_offset+relative*mouse_sensitivity).limit_length(virtual_mouse_radius)
+func requested_tilt() -> float:
+ # A soft center gives precision for hovering/landing without losing full inversion.
+ var radius := virtual_mouse_offset.length()/virtual_mouse_radius
+ var travel := clampf((radius-mouse_deadzone)/(1.0-mouse_deadzone),0,1)
+ return deg_to_rad(max_declination)*pow(travel,tilt_curve)
 func step(dt: float) -> void:
  if not alive: return
  grace=maxf(0,grace-dt)
@@ -55,10 +64,12 @@ func step(dt: float) -> void:
   virtual_mouse_offset=Vector2(-sin(direction),-cos(direction))*radius
   if radius<0.1: yaw-=turn*dt*1.6
  var target_yaw := yaw
- if virtual_mouse_offset.length()>0.5: target_yaw=atan2(-virtual_mouse_offset.x,-virtual_mouse_offset.y)
- var target_tilt := virtual_mouse_offset.length()/virtual_mouse_radius*deg_to_rad(max_declination)
+ if virtual_mouse_offset.length()>virtual_mouse_radius*mouse_deadzone: target_yaw=atan2(-virtual_mouse_offset.x,-virtual_mouse_offset.y)
+ var target_tilt := requested_tilt()
  yaw_velocity+=(angle_difference(yaw,target_yaw)*orientation_response-yaw_velocity*orientation_damping)*dt
  tilt_velocity+=((target_tilt-tilt)*orientation_response-tilt_velocity*orientation_damping)*dt
+ yaw_velocity=clampf(yaw_velocity,-deg_to_rad(max_heading_rate),deg_to_rad(max_heading_rate))
+ tilt_velocity=clampf(tilt_velocity,-deg_to_rad(max_tilt_rate),deg_to_rad(max_tilt_rate))
  yaw+=yaw_velocity*dt; tilt+=tilt_velocity*dt
  basis=Basis(Vector3.UP,yaw)*Basis(Vector3.RIGHT,-tilt)
  thrusting=Input.is_action_pressed("thrust") and fuel>0

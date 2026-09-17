@@ -26,6 +26,15 @@ func run() -> void:
  check(game.mode=="playing","Resume restores gameplay")
  if DisplayServer.get_name()!="headless": check(Input.mouse_mode==Input.MOUSE_MODE_CAPTURED,"Resume captures mouse")
  var p: LanderController=game.player
+ p.mouse_motion(Vector2(12,0))
+ for i in range(30): p.step(1.0/60)
+ check(absf(p.yaw)<0.001 and absf(p.tilt)<0.001,"Mouse jitter cannot spin or tilt the craft near neutral")
+ p.virtual_mouse_offset=Vector2(240,0)
+ for i in range(60):
+  p.step(1.0/60)
+  check(absf(p.yaw_velocity)<=deg_to_rad(p.max_heading_rate)+0.001,"Heading speed remains bounded on abrupt mouse input")
+ check(absf(p.tilt)<p.requested_tilt(),"Damped orientation approaches its target without overshoot")
+ p.respawn()
  p.fuel=50
  for i in range(60): p.step(1.0/60)
  check(p.fuel>69 and p.landed,"Safe pad refuels at 20 per second")
