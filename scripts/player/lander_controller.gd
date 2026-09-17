@@ -19,6 +19,13 @@ signal player_died
 @export var linear_drag := 0.12
 @export var max_practical_speed := 95.0
 @export var flight_ceiling := 180.0
+@export_group("Landing assistance")
+@export var landing_assist_radius := 22.0
+@export var landing_assist_height := 18.0
+@export var landing_vertical_limit := 8.0
+@export var landing_horizontal_limit := 7.0
+@export var landing_tilt_limit := 22.0
+var landing_assist := false
 var virtual_mouse_offset := Vector2.ZERO
 var velocity := Vector3.ZERO
 var yaw := 0.0
@@ -45,7 +52,7 @@ func respawn() -> void:
  velocity=Vector3.ZERO; virtual_mouse_offset=Vector2.ZERO
  yaw=0; requested_heading=0; tilt=0; yaw_velocity=0; tilt_velocity=0
  basis=Basis.IDENTITY
- fuel=100; alive=true; landed=true; grace=1.5
+ fuel=100; alive=true; landed=true; grace=1.5; landing_assist=false
  show(); shadow.show()
 func mouse_motion(relative: Vector2) -> void:
  # Relative steering avoids the polar singularity: a tiny sideways movement
@@ -60,6 +67,23 @@ func requested_tilt() -> float:
  var radius := virtual_mouse_offset.length()/virtual_mouse_radius
  var travel := clampf((radius-mouse_deadzone)/(1.0-mouse_deadzone),0,1)
  return deg_to_rad(max_declination)*pow(travel,tilt_curve)
+func can_assist_landing() -> bool:
+ var offset := WrapMath.delta(position,game.terrain.home)
+ var height: float = position.y-game.terrain.home.y-1.15
+ return not landed and not Input.is_action_pressed("thrust") and height>=0 and height<=landing_assist_height and Vector2(offset.x,offset.z).length()<=landing_assist_radius and velocity.y<=1.0 and velocity.y>=-16.0 and Vector2(velocity.x,velocity.z).length()<=14.0 and absf(tilt)<=deg_to_rad(40)
+func assist_descent(dt: float) -> void:
+ # The home pad guides a controlled approach; fast/inverted crashes remain lethal.
+ var offset := WrapMath.delta(position,game.terrain.home)
+ var desired := (Vector2(offset.x,offset.z)*0.6).limit_length(4.0)
+ var horizontal := Vector2(velocity.x,velocity.z).move_toward(desired,10.0*dt)
+ velocity.x=horizontal.x; velocity.z=horizontal.y
+ velocity.y=move_toward(velocity.y,-2.5,24.0*dt)
+func settle_on_pad() -> void:
+ landed=true; landing_assist=false
+ position.y=game.terrain.home.y+1.35
+ velocity=Vector3.ZERO; virtual_mouse_offset=Vector2.ZERO
+ tilt=0; tilt_velocity=0; yaw_velocity=0; requested_heading=yaw
+ basis=Basis(Vector3.UP,yaw)
 func step(dt: float) -> void:
  if not alive: return
  grace=maxf(0,grace-dt)
@@ -72,7 +96,10 @@ func step(dt: float) -> void:
   requested_heading=wrapf(requested_heading-turn*dt*1.6,-PI,PI)
   var radius := clampf(virtual_mouse_offset.length()+pitch*dt*65,0,virtual_mouse_radius)
   set_attitude_input(radius)
- var target_tilt := requested_tilt()
+ landing_assist=can_assist_landing()
+ if landing_assist:
+  virtual_mouse_offset=virtual_mouse_offset.move_toward(Vector2.ZERO,120.0*dt)
+ var target_tilt := 0.0 if landing_assist else requested_tilt()
  yaw_velocity+=(angle_difference(yaw,requested_heading)*heading_response-yaw_velocity*heading_damping)*dt
  tilt_velocity+=((target_tilt-tilt)*orientation_response-tilt_velocity*orientation_damping)*dt
  yaw_velocity=clampf(yaw_velocity,-deg_to_rad(max_heading_rate),deg_to_rad(max_heading_rate))
@@ -90,15 +117,15 @@ func step(dt: float) -> void:
   velocity.y-=gravity*dt
   if powered: velocity+=basis.y*thrust_acceleration*dt
   velocity*=exp(-linear_drag*dt)
+  if landing_assist: assist_descent(dt)
   velocity=velocity.limit_length(max_practical_speed)
   position+=velocity*dt
   var ground: float=game.terrain.ground(position)
   if position.y<=ground+1.15:
    var home_delta := WrapMath.delta(game.terrain.home,position)
-   var safe := absf(home_delta.x)<9 and absf(home_delta.z)<9 and absf(velocity.y)<4 and Vector2(velocity.x,velocity.z).length()<3.5 and absf(tilt)<deg_to_rad(8) and basis.y.y>0
+   var safe := absf(home_delta.x)<=TerrainData.PAD_HALF_SIZE and absf(home_delta.z)<=TerrainData.PAD_HALF_SIZE and absf(velocity.y)<=landing_vertical_limit and Vector2(velocity.x,velocity.z).length()<=landing_horizontal_limit and absf(tilt)<=deg_to_rad(landing_tilt_limit) and basis.y.y>0
    if safe:
-    landed=true; position.y=game.terrain.home.y+1.35; velocity=Vector3.ZERO
-    virtual_mouse_offset=Vector2.ZERO
+    settle_on_pad()
    else: die(true)
  exhaust_timer-=dt
  if powered and exhaust_timer<=0:

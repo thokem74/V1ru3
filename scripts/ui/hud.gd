@@ -88,7 +88,8 @@ func draw_flight_hud() -> void:
  text(Vector2(958,642),"LMB  THRUST    RMB  CANNON",14,AQUA)
  text(Vector2(958,675),"R  UPRIGHT    ESC  PAUSE",14,MUTED)
  var status := ""
- if p.landed: status="REFUELING • KEEP UPRIGHT TO LAND"
+ if p.landed: status="REFUELING • THRUST TO LIFT OFF"
+ elif p.landing_assist: status="LANDING ASSIST • THRUST TO ABORT"
  elif p.position.y>=p.flight_ceiling: status="THRUST CEILING"
  elif p.fuel<20: status="LOW FUEL • RETURN TO HOME"
  if game.notice_time>0: status=game.notice
@@ -132,7 +133,7 @@ func title_screen() -> void:
  text(Vector2(98,421),"MOVE MOUSE  left/right steer; up/down adjusts tilt",17,MUTED)
  text(Vector2(98,451),"LEFT BUTTON  thrust        RIGHT BUTTON  cannon",17,MUTED)
  text(Vector2(98,481),"R  return upright             M  missile     B  smart bomb",17,MUTED)
- text(Vector2(98,511),"Land gently on the marked home pad to refuel.",17,MUTED)
+ text(Vector2(98,511),"Slow near home and release thrust for landing assist.",17,MUTED)
  draw_rect(Rect2(98,554,558,57),AQUA)
  text(Vector2(180,592),"ENTER  /  CLICK TO LAUNCH",24,Color("102c35"))
  panel(Rect2(718,540,516,156))

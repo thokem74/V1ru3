@@ -48,13 +48,13 @@ func setup(terrain: TerrainData) -> void:
    var item := {"p":p,"kind":2,"alive":true,"node":node}
    towers.append(item); props.append(item)
  home_node=Node3D.new(); add_child(home_node)
- Models.box(home_node,Vector3(19,0.35,19),Color("3c515c"),Vector3(0,0.15,0))
- for x in [-8,8]: Models.box(home_node,Vector3(0.6,0.1,17),Color("8fe2cf"),Vector3(x,0.4,0))
- for z in [-8,8]: Models.box(home_node,Vector3(17,0.1,0.6),Color("8fe2cf"),Vector3(0,0.4,z))
+ Models.box(home_node,Vector3((TerrainData.PAD_HALF_SIZE+1)*2,0.35,(TerrainData.PAD_HALF_SIZE+1)*2),Color("3c515c"),Vector3(0,0.15,0))
+ for x in [-TerrainData.PAD_HALF_SIZE,TerrainData.PAD_HALF_SIZE]: Models.box(home_node,Vector3(0.6,0.1,30),Color("8fe2cf"),Vector3(x,0.4,0))
+ for z in [-TerrainData.PAD_HALF_SIZE,TerrainData.PAD_HALF_SIZE]: Models.box(home_node,Vector3(30,0.1,0.6),Color("8fe2cf"),Vector3(0,0.4,z))
  for x in [-2,2]: Models.box(home_node,Vector3(0.6,0.1,6),Color("f0de9e"),Vector3(x,0.4,0))
  Models.box(home_node,Vector3(4,0.1,0.6),Color("f0de9e"),Vector3(0,0.4,0))
- Models.cone(home_node,0.5,0.3,16,Color("b6c8c4"),Vector3(12,8,0))
- Models.cone(home_node,1.2,0,2,Color("80ffee"),Vector3(12,17,0))
+ Models.cone(home_node,0.5,0.3,16,Color("b6c8c4"),Vector3(19,8,0))
+ Models.cone(home_node,1.2,0,2,Color("80ffee"),Vector3(19,17,0))
  for item in props:
   var key := bucket(item.p)
   if not buckets.has(key): buckets[key]=[]

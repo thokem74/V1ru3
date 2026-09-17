@@ -78,6 +78,37 @@ func run() -> void:
  p.grace=0; p.landed=false; p.position=game.terrain.home+Vector3.UP*1.2; p.velocity=Vector3(0,-2,0)
  p.step(0.05)
  check(p.alive and p.landed,"Gentle upright landing succeeds")
+ p.respawn(); p.landed=false; p.fuel=0
+ p.position=game.terrain.home+Vector3(18,14,0)
+ p.velocity=Vector3(-5,-9,2); p.tilt=deg_to_rad(25)
+ var assist_seen := false
+ for i in range(600):
+  p.step(1.0/60)
+  assist_seen=assist_seen or p.landing_assist
+  if p.landed or not p.alive: break
+ check(assist_seen and p.alive and p.landed,"Pad assist guides an off-center tilted approach with empty fuel to a safe landing")
+ check(p.tilt==0 and p.velocity==Vector3.ZERO,"Touchdown stabilizes attitude and motion")
+ p.respawn(); p.landed=false
+ p.position=game.terrain.home+Vector3(12,1.2,0)
+ p.velocity=Vector3(4,-6,0); p.tilt=deg_to_rad(18)
+ p.step(1.0/60)
+ check(p.alive and p.landed,"Wider pad accepts moderate touchdown speed and tilt")
+ p.respawn(); p.landed=false
+ p.position=game.terrain.home+Vector3(0,12,0); p.velocity=Vector3.DOWN*4
+ p.step(1.0/60)
+ check(p.landing_assist,"Controlled home descent engages assistance")
+ Input.action_press("thrust"); p.step(1.0/60); Input.action_release("thrust")
+ check(not p.landing_assist and p.thrusting,"Thrust immediately disengages landing assistance")
+ p.respawn(); p.landed=false
+ p.position=game.terrain.home+Vector3(40,12,0); p.velocity=Vector3.DOWN*4
+ check(not p.can_assist_landing(),"Assistance is restricted to the home pad approach")
+ p.position=game.terrain.home+Vector3(0,1.2,0); p.velocity=Vector3.DOWN*25
+ p.step(1.0/60)
+ check(not p.alive,"High-speed crashes on the pad remain lethal")
+ p.respawn(); p.landed=false
+ p.position=game.terrain.home+Vector3(0,12,0); p.tilt=deg_to_rad(100)
+ check(not p.can_assist_landing(),"Assistance does not rescue inverted craft")
+ p.respawn()
  p.landed=false; p.position=Vector3(512,70,512); p.fuel=0; p.velocity=Vector3.ZERO
  Input.action_press("thrust"); p.step(0.1); Input.action_release("thrust")
  check(p.velocity.y<0 and not p.thrusting,"Empty fuel disables the engine")

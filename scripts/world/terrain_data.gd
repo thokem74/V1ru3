@@ -3,6 +3,7 @@ extends RefCounted
 signal tile_infected(index: int)
 const GRID := 128
 const CELL := 8.0
+const PAD_HALF_SIZE := 15.0
 var heights := PackedFloat32Array()
 var infection := PackedFloat32Array()
 var land := PackedByteArray()
